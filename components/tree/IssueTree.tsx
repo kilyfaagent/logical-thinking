@@ -7,7 +7,9 @@ import {
   Background,
   BackgroundVariant,
   addEdge,
+  applyNodeChanges,
   type Connection,
+  type NodeChange,
   type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -26,18 +28,11 @@ export default function IssueTree() {
   const setEdges = useAppStore((s) => s.setEdges);
 
   const handleNodesChange = useCallback(
-    (changes: Array<{ id: string; type: string; position?: { x: number; y: number }; dragging?: boolean }>) => {
-      setNodes(
-        nodes.map((node) => {
-          const change = changes.find(
-            (c) => c.id === node.id && c.type === "position" && c.position
-          );
-          if (change && change.position) {
-            return { ...node, position: change.position };
-          }
-          return node;
-        }) as IssueNode[]
-      );
+    (changes: NodeChange[]) => {
+      const filtered = changes.filter((c) => c.type !== "remove");
+      if (filtered.length === 0) return;
+      const updated = applyNodeChanges(filtered, nodes) as IssueNode[];
+      setNodes(updated);
     },
     [nodes, setNodes]
   );
@@ -72,7 +67,7 @@ export default function IssueTree() {
       <ReactFlow
         nodes={rfNodes}
         edges={edges}
-        onNodesChange={handleNodesChange as never}
+        onNodesChange={handleNodesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
